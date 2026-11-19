@@ -1,0 +1,23 @@
+@startuml
+autoactivate on
+
+participant "Клиент" as Client
+participant "Чат API" as ChatAPI
+participant "NLU/LLM" as LLM
+participant "RAG" as RAG
+participant "Core Banking API" as Core
+participant "История сессий" as Context
+
+Client -> ChatAPI: «Почему списали 299 руб. за карту?»
+ChatAPI -> Context: загрузить сессию + профиль клиента
+Context --> ChatAPI: карты, пакеты услуг, история операций
+ChatAPI -> LLM: анализ намерения (списание/комиссия)
+LLM --> ChatAPI: намерение = объяснение_комиссии, нужны данные операции
+ChatAPI -> Core: GET счета/карты клиента + операции за период
+Core --> ChatAPI: список операций, включая списание 299 руб.
+ChatAPI -> RAG: поиск условий обслуживания карты (актуальная версия)
+RAG --> ChatAPI: условия тарифа, пункт о комиссии
+ChatAPI -> LLM: сформулировать ответ (операция + условия + причина)
+LLM --> ChatAPI: текст ответа клиенту
+ChatAPI --> Client: ответ: «Это комиссия за обслуживание карты X, тариф Y, пункт Z договора»
+@enduml

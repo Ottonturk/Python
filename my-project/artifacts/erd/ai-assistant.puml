@@ -1,0 +1,152 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+entity Client {
+  <<PK>> client_id : string
+  --
+  name : string
+  created_at : datetime
+}
+
+entity Card {
+  <<PK>> card_id : string
+  <<FK>> client_id : string
+  --
+  masked_number : string
+  card_type : string
+  package : string
+  is_active : boolean
+}
+
+entity Account {
+  <<PK>> account_id : string
+  <<FK>> client_id : string
+  --
+  currency : string
+  balance : decimal
+  is_active : boolean
+}
+
+entity ServicePackage {
+  <<PK>> package_id : string
+  --
+  name : string
+  monthly_fee : decimal
+  free_transfer_limit : decimal
+}
+
+entity Operation {
+  <<PK>> operation_id : string
+  <<FK>> client_id : string
+  <<FK>> card_id : string
+  --
+  amount : decimal
+  currency : string
+  merchant : string
+  status : string
+  timestamp : datetime
+}
+
+entity TariffDocument {
+  <<PK>> document_id : string
+  --
+  version : string
+  title : string
+  category : string
+  effective_from : datetime
+  effective_to : datetime
+  source_url : string
+}
+
+entity KnowledgeChunk {
+  <<PK>> chunk_id : string
+  <<FK>> document_id : string
+  --
+  content : text
+}
+
+entity IndividualContract {
+  <<PK>> contract_id : string
+  <<FK>> client_id : string
+  --
+  version : string
+  effective_from : datetime
+  effective_to : datetime
+  source_url : string
+}
+
+entity Action {
+  <<PK>> action_id : string
+  <<FK>> client_id : string
+  --
+  action_type : string
+  status : string
+  idempotency_key : string
+  client_confirmed : boolean
+  confirmed_at : datetime
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity ActionParameter {
+  <<PK>> parameter_id : string
+  <<FK>> action_id : string
+  --
+  key : string
+  value : text
+}
+
+entity AuditEntry {
+  <<PK>> entry_id : string
+  <<FK>> action_id : string
+  <<FK>> client_id : string
+  --
+  timestamp : datetime
+  action_type : string
+  result : string
+  error_code : string
+  source_system : string
+}
+
+entity Dispute {
+  <<PK>> dispute_id : string
+  <<FK>> client_id : string
+  <<FK>> action_id : string
+  --
+  description : text
+  status : string
+  created_at : datetime
+  resolved_at : datetime
+}
+
+entity Escalation {
+  <<PK>> escalation_id : string
+  <<FK>> client_id : string
+  <<FK>> action_id : string
+  --
+  context : text
+  operator_id : string
+  status : string
+  created_at : datetime
+}
+
+Client }o--|| Card : has
+Client }o--|| Account : has
+Client }o--|| ServicePackage : subscribed_to
+Client }o--|| Operation : performs
+Client }o--|| IndividualContract : has
+Client }o--|| Action : initiates
+Client }o--|| AuditEntry : generates
+Client }o--|| Dispute : files
+Client }o--|| Escalation : requests
+
+Card }o--|| Operation : generates
+Account }o--|| Operation : debits_credits
+
+TariffDocument }o--|| KnowledgeChunk : contains
+Action }o--|| ActionParameter : has
+Action }o--|| AuditEntry : audited_by
+Dispute }o--|| Action : created_from
+Escalation }o--|| Action : created_from
+@enduml

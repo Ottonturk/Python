@@ -1,0 +1,25 @@
+site_name: PIX
+nav:
+  - Home: index.md
+  - About: about.md
+  - Frontend: frontend/about.md
+  - Backend: backend.md
+  - AI Assistant (ARCH KATA):
+    - TZ Analysis: ai/arch-kata/tz-analysis.md
+    - 1. Boundaries: ai/arch-kata/boundaries.md
+    - 2. Architecture: ai/arch-kata/architecture.md
+    - 2.3 Integrations: ai/arch-kata/integrations.md
+    - 4. Knowledge Sources: ai/arch-kata/knowledge-sources.md
+    - 5. Action Management: ai/arch-kata/action-management.md
+    - 6. AI Evaluation: ai/arch-kata/ai-evaluation.md
+    - 7. Operations: ai/arch-kata/operations.md
+    - 8. Implementation Plan: ai/arch-kata/implementation-plan.md
+  - ADR:
+    - 0001 Architecture: ai/adr/0001-ai-assistant-architecture.md
+    - 0002 RAG Knowledge Base: ai/adr/0002-rag-knowledge-base.md
+    - 0003 Action Confirmation: ai/adr/0003-action-confirmation.md
+    - 0004 Idempotency: ai/adr/0004-idempotency.md
+    - 0005 Escalation: ai/adr/0005-escalation.md
+
+theme: mkdocs
+

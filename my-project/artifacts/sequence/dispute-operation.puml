@@ -1,0 +1,32 @@
+@startuml
+autoactivate on
+
+participant "Клиент" as Client
+participant "Чат API" as ChatAPI
+participant "NLU/LLM" as LLM
+participant "Core Banking API" as Core
+participant "Action Manager" as ActionMgr
+participant "Обращения (Support)" as Support
+participant "История сессий" as Context
+
+Client -> ChatAPI: «Вижу два одинаковых списания за один заказ. Верните лишнее»
+ChatAPI -> Context: загрузить сессию, профиль клиента
+Context --> ChatAPI: карты, операции
+ChatAPI -> Core: GET операции клиента (по датам, суммам, merchants)
+Core --> ChatAPI: список операций, включая возможные дубликаты
+ChatAPI -> LLM: найти пары дубликатов, подтвердить с клиентом
+LLM --> ChatAPI: кандидаты на дубликаты, нужна уверенность клиента
+ChatAPI --> Client: «Я нашёл два похожих списания на сумму X. Это один заказ?»
+Client -> ChatAPI: «Да, это один заказ. Верните лишнее»
+ChatAPI -> ActionMgr: зарегистрировать обращение (спорная операция)
+ActionMgr -> Core: CREATE обращение (тип: спорная операция, данные клиента, ссылки на операции)
+Core --> ActionMgr: номер обращения, статус «в рассмотрении»
+ActionMgr --> ChatAPI: номер обращения + ожидание решения
+ChatAPI --> Client: «Обращение №12345 зарегистрировано. Решение о возврате принимается банком в течение N дней»
+ChatAPI --> Client: «Это не гарантия возврата. Ожидайте уведомления»
+alt клиент хочет передать сотруднику
+  ChatAPI -> Support: передать контекст диалога + номер обращения
+  Support --> ChatAPI: оператор подключён
+  ChatAPI --> Client: «Вы соединены с сотрудником поддержки»
+end
+@enduml

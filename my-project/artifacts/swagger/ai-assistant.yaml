@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: AI Assistant for Bank Retail Clients
+  description: |
+    Персональный банковский AI-ассистент для розничных клиентов.
+    Позволяет получать ответы о продуктах и операциях, готовить переводы,
+    регистрировать споры и передавать диалог сотруднику поддержки.
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+    description: Placeholder server (production URL not specified in ТЗ)
+paths:
+  /chat/message:
+    post:
+      summary: Отправить сообщение в чат с AI-ассистентом
+      description: |
+        Основная точка входа для взаимодействия с ассистентом.
+        Поддерживает сценарии: объяснение комиссии, подготовка перевода,
+        регистрация спора, эскалация к сотруднику.
+      operationId: sendChatMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+      responses:
+        '200':
+          description: Успешный ответ от ассистента
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageResponse'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /actions/{action_id}/confirm:
+    post:
+      summary: Подтвердить или отклонить действие клиентом
+      description: |
+        Клиент подтверждает подготовленное действие (например, перевод)
+        через 2FA / push-уведомление. Без подтверждения действие не исполняется.
+      operationId: confirmAction
+      parameters:
+        - in: path
+          name: action_id
+          required: true
+          schema:
+            type: string
+            description: Идентификатор действия
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionConfirmRequest'
+      responses:
+        '200':
+          description: Действие подтверждено или отклонено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionConfirmResponse'
+        '400':
+          description: Некорректный запрос или действие не в состоянии ожидания
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Действие не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /actions/{action_id}/execute:
+    post:
+      summary: Исполнить подтвержденное действие
+      description: |
+        Исполняет действие после подтверждения клиентом.
+        Доступно только для подтвержденных действий (PENDING_CONFIRMATION).
+      operationId: executeAction
+      parameters:
+        - in: path
+          name: action_id
+          required: true
+          schema:
+            type: string
+            description: Идентификатор действия
+      responses:
+        '200':
+          description: Действие исполнено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionExecuteResponse'
+        '400':
+          description: Действие не подтверждено или уже исполнено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Действие не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Ошибка при исполнении (Core Banking)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /clients/{client_id}/actions:
+    get:
+      summary: Получить список действий клиента
+      description: |
+        Возвращает все действия клиента с их статусами для аудита и отображения.
+      operationId: listClientActions
+      parameters:
+        - in: path
+          name: client_id
+          required: true
+          schema:
+            type: string
+            description: Идентификатор клиента
+      responses:
+        '200':
+          description: Список действий клиента
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  actions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Action'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Клиент не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /clients/{client_id}/audit:
+    get:
+      summary: Получить аудит-лог действий клиента
+      description: |
+        Возвращает неизменяемый журнал всех действий AI для клиента.
+        Требует роли security-auditor или compliance-officer.
+      operationId: getClientAuditLog
+      parameters:
+        - in: path
+          name: client_id
+          required: true
+          schema:
+            type: string
+            description: Идентификатор клиента
+      responses:
+        '200':
+          description: Аудит-лог клиента
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEntry'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав для просмотра аудита
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Клиент не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    ChatMessageRequest:
+      type: object
+      required:
+        - client_id
+        - message
+      properties:
+        client_id:
+          type: string
+          description: Идентификатор клиента
+        message:
+          type: string
+          description: Текст сообщения клиента на русском языке
+        context:
+          type: object
+          description: Дополнительный контекст (опционально)
+          properties:
+            as_of:
+              type: string
+              format: date-time
+              description: Дата, на которую запрашивается информация (для исторических тарифов)
+
+    ChatMessageResponse:
+      type: object
+      required:
+        - scenario
+        - status
+        - message
+      properties:
+        scenario:
+          type: string
+          enum: [A, B, C, escalation, unknown]
+          description: Сценарий обработки сообщения
+        status:
+          type: string
+          description: Статус обработки (ok, prepared, registered, escalated, no_data, cancelled, executed, failed)
+        message:
+          type: string
+          description: Ответ клиенту на русском языке
+        action_id:
+          type: string
+          description: Идентификатор действия (если создано)
+        idempotency_key:
+          type: string
+          description: Ключ идемпотентности (если применимо)
+        sources:
+          type: array
+          items:
+            type: string
+          description: Источники знаний, использованные для формирования ответа
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Уверенность модели в ответе
+        requires_confirmation:
+          type: boolean
+          description: Требуется ли подтверждение клиентом
+        requires_human_review:
+          type: boolean
+          description: Требуется ли проверка человеком
+
+    ActionConfirmRequest:
+      type: object
+      required:
+        - confirmed
+      properties:
+        confirmed:
+          type: boolean
+          description: true — подтвердить, false — отклонить действие
+
+    ActionConfirmResponse:
+      type: object
+      required:
+        - action_id
+        - status
+        - message
+      properties:
+        action_id:
+          type: string
+        status:
+          type: string
+          enum: [pending_confirmation, cancelled]
+        message:
+          type: string
+
+    ActionExecuteResponse:
+      type: object
+      required:
+        - action_id
+        - status
+        - message
+      properties:
+        action_id:
+          type: string
+        status:
+          type: string
+          enum: [executed, failed]
+        message:
+          type: string
+        result:
+          type: object
+          description: Результат исполнения (зависит от типа действия)
+
+    Action:
+      type: object
+      required:
+        - action_id
+        - client_id
+        - action_type
+        - status
+        - created_at
+      properties:
+        action_id:
+          type: string
+        client_id:
+          type: string
+        action_type:
+          type: string
+          enum: [explain_commission, prepare_transfer, execute_transfer, register_dispute, escalate_to_human]
+        status:
+          type: string
+          enum: [pending, pending_confirmation, confirmed, executed, failed, unknown, cancelled]
+        parameters:
+          type: object
+        idempotency_key:
+          type: string
+        client_confirmed:
+          type: boolean
+        confirmed_at:
+          type: string
+          format: date-time
+        result:
+          type: object
+        error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AuditEntry:
+      type: object
+      required:
+        - entry_id
+        - timestamp
+        - client_id
+        - action_id
+        - action_type
+        - result
+        - source_system
+      properties:
+        entry_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        client_id:
+          type: string
+        action_id:
+          type: string
+        action_type:
+          type: string
+        parameters:
+          type: object
+        result:
+          type: string
+        error_code:
+          type: string
+        source_system:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Описание ошибки
+        code:
+          type: string
+          description: Код ошибки
+        details:
+          type: object
+          description: Дополнительные детали ошибки (опционально)
