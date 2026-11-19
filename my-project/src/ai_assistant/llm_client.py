@@ -46,7 +46,17 @@ class MockLLMClient(LLMClient):
     ) -> str:
         prompt_lower = prompt.lower()
 
-        if "комисси" in prompt_lower or "списан" in prompt_lower:
+        if "спор" in prompt_lower or "дubl" in prompt_lower or "два одинаков" in prompt_lower:
+            return json.dumps(
+                {
+                    "intent": "register_dispute",
+                    "entities": {"operation_ids": [], "description": prompt[:200]},
+                    "needs_data": True,
+                    "confidence": 0.88,
+                },
+                ensure_ascii=False,
+            )
+        if any(w in prompt_lower for w in ["комисси", "списан", "списал", "списать", "комиссия"]):
             return json.dumps(
                 {
                     "intent": "explain_commission",
@@ -68,16 +78,6 @@ class MockLLMClient(LLMClient):
                     },
                     "needs_data": True,
                     "confidence": 0.85,
-                },
-                ensure_ascii=False,
-            )
-        if "спор" in prompt_lower or "дubl" in prompt_lower or "два одинаков" in prompt_lower:
-            return json.dumps(
-                {
-                    "intent": "register_dispute",
-                    "entities": {"operation_ids": [], "description": prompt[:200]},
-                    "needs_data": True,
-                    "confidence": 0.88,
                 },
                 ensure_ascii=False,
             )
